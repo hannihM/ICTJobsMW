@@ -12,7 +12,7 @@ CS_KEYWORDS = [
     "system administrator", "database", "sql", "web developer", "web master",
     "devops", "cloud engineer", "cloud architect", "full stack", "laravel",
     "data analyst", "data scientist", "data engineer", "machine learning",
-    "artificial intelligence",
+    "artificial intelligence", "marketing", "social media", "graphic design",
 ]
 
 DEFAULT_HEADERS = {
