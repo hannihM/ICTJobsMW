@@ -63,6 +63,7 @@
                 Found <span class="text-indigo-600 font-bold">{{ total_jobs }}</span> Tech Jobs
             </h2>
         </div>
+        <p id="applicationStatus" role="status" aria-live="polite" class="hidden text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-4 py-3 mb-6"></p>
 
         <!-- Job Cards Grid -->
         {% if jobs %}
@@ -94,6 +95,10 @@
                     <a href="{{ job.link }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold flex items-center gap-1.5">
                         View Full Details <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                     </a>
+                    <button type="button" class="application-toggle text-sm font-semibold flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 transition" data-job-link="{{ job.link }}" aria-pressed="false">
+                        <i class="fa-regular fa-circle-check" aria-hidden="true"></i>
+                        <span>Mark as applied</span>
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -118,6 +123,66 @@
 
     <!-- Interactivity Script -->
     <script>
+        const applicationStorageKey = 'appliedJobLinks';
+        const applicationStatus = document.getElementById('applicationStatus');
+        const applicationButtons = document.querySelectorAll('.application-toggle');
+        let appliedJobLinks = new Set();
+
+        function showApplicationError(message) {
+            applicationStatus.textContent = message;
+            applicationStatus.classList.remove('hidden');
+        }
+
+        function updateApplicationButton(button, isApplied) {
+            button.setAttribute('aria-pressed', String(isApplied));
+            button.classList.toggle('bg-emerald-50', isApplied);
+            button.classList.toggle('border-emerald-300', isApplied);
+            button.classList.toggle('text-emerald-700', isApplied);
+            button.classList.toggle('border-slate-300', !isApplied);
+            button.classList.toggle('text-slate-600', !isApplied);
+            button.querySelector('i').className = isApplied
+                ? 'fa-solid fa-circle-check'
+                : 'fa-regular fa-circle-check';
+            button.querySelector('span').textContent = isApplied ? 'Applied' : 'Mark as applied';
+        }
+
+        try {
+            const storedLinks = JSON.parse(localStorage.getItem(applicationStorageKey) || '[]');
+            if (!Array.isArray(storedLinks) || !storedLinks.every(link => typeof link === 'string')) {
+                throw new Error('Saved application data is invalid.');
+            }
+            appliedJobLinks = new Set(storedLinks);
+            applicationButtons.forEach(button => {
+                updateApplicationButton(button, appliedJobLinks.has(button.dataset.jobLink));
+            });
+        } catch (error) {
+            showApplicationError('Could not load applied-job status from browser storage. Application toggles are disabled.');
+            applicationButtons.forEach(button => {
+                button.disabled = true;
+            });
+        }
+
+        applicationButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const jobLink = button.dataset.jobLink;
+                const nextAppliedJobLinks = new Set(appliedJobLinks);
+                if (nextAppliedJobLinks.has(jobLink)) {
+                    nextAppliedJobLinks.delete(jobLink);
+                } else {
+                    nextAppliedJobLinks.add(jobLink);
+                }
+
+                try {
+                    localStorage.setItem(applicationStorageKey, JSON.stringify([...nextAppliedJobLinks]));
+                    appliedJobLinks = nextAppliedJobLinks;
+                    updateApplicationButton(button, appliedJobLinks.has(jobLink));
+                    applicationStatus.classList.add('hidden');
+                } catch (error) {
+                    showApplicationError('Could not save your applied-job status. Check your browser storage settings and try again.');
+                }
+            });
+        });
+
         function triggerRefresh() {
             const btn = document.getElementById('refreshBtn');
             const icon = document.getElementById('refreshIcon');
